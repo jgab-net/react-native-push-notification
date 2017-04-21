@@ -12,6 +12,36 @@ var DEVICE_NOTIF_EVENT = 'remoteNotificationReceived';
 var NOTIF_REGISTER_EVENT = 'remoteNotificationsRegistered';
 var REMOTE_FETCH_EVENT = 'remoteFetch';
 
+const GCM_DATA_KEYS = [
+  'google.message_id',
+  'google.sent_time',
+  'collapse_key',
+  'foreground',
+  'userInteraction',
+  'id',
+  'notification',
+  'data',
+  'from'
+];
+
+function homologateNotificationWithIOS(notification) {
+  let data = {};
+  let newNotification = {};
+
+  Object.entries(notification).forEach(n => {
+    if (GCM_DATA_KEYS.includes(n[0])) {
+      newNotification = { ...newNotification, [n[0]]: n[1] };
+    } else {
+      data = { ...data, [n[0]]: n[1] };
+    }
+  });
+
+  return {
+    ...newNotification,
+    data
+  };
+}
+
 var NotificationsComponent = function() {
 
 };
@@ -20,7 +50,7 @@ NotificationsComponent.prototype.getInitialNotification = function () {
     return RNPushNotification.getInitialNotification()
         .then(function (notification) {
             if (notification && notification.dataJSON) {
-                return JSON.parse(notification.dataJSON);
+                return homologateNotificationWithIOS(JSON.parse(notification.dataJSON));
             }
             return null;
         });
@@ -67,7 +97,7 @@ NotificationsComponent.prototype.addEventListener = function(type: string, handl
 		listener =  DeviceEventEmitter.addListener(
 			DEVICE_NOTIF_EVENT,
 			function(notifData) {
-				var data = JSON.parse(notifData.dataJSON);
+				var data = homologateNotificationWithIOS(JSON.parse(notifData.dataJSON));
 				handler(data);
 			}
 		);
@@ -82,7 +112,7 @@ NotificationsComponent.prototype.addEventListener = function(type: string, handl
 		listener = DeviceEventEmitter.addListener(
 			REMOTE_FETCH_EVENT,
 			function(notifData) {
-				var notificationData = JSON.parse(notifData.dataJSON)
+				var notificationData = homologateNotificationWithIOS(JSON.parse(notifData.dataJSON))
 				handler(notificationData);
 			}
 		);

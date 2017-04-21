@@ -58,20 +58,39 @@ public class RNPushNotificationJsDelivery {
     }
 
     String convertJSON(Bundle bundle) {
+        return bundleToJson(bundle).toString();
+    }
+
+    private JSONObject bundleToJson(Bundle bundle) {
         JSONObject json = new JSONObject();
         Set<String> keys = bundle.keySet();
         for (String key : keys) {
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    json.put(key, JSONObject.wrap(bundle.get(key)));
+                if (String.class.isInstance(bundle.get(key))) {
+                    try {
+                        setJSONObjectProperty(json, key, new JSONObject(bundle.get(key).toString()));
+                    } catch (JSONException ignored) {
+                        setJSONObjectProperty(json, key, bundle.get(key));
+                    }
+                } else if (Bundle.class.isInstance(bundle.get(key))) {
+                    json.put(key, convertJSON((Bundle) bundle.get(key)));
                 } else {
-                    json.put(key, bundle.get(key));
+                    setJSONObjectProperty(json, key, bundle.get(key));
                 }
             } catch (JSONException e) {
                 return null;
             }
         }
-        return json.toString();
+        return json;
+    }
+
+    private JSONObject setJSONObjectProperty(JSONObject json, String key, Object value) throws JSONException {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            json.put(key, JSONObject.wrap(value));
+        } else {
+            json.put(key, value);
+        }
+        return json;
     }
 
 }
